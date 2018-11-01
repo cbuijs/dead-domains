@@ -5,4 +5,4 @@ Source of the domains tested is https://raw.githubusercontent.com/cbuijs/accompl
 
 Will be updated every 24 hours.
 
-PyFuncenle is used, check it here: https://github.com/funilrys/PyFunceble.git
+PyFunceble is used to create the lists, check it here: https://github.com/funilrys/PyFunceble.git
