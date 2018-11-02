@@ -3,3 +3,4 @@
 *.yaml
 output/*
 funceble/*
+*backup*
