@@ -1,5 +1,5 @@
 dnspython>=1.15.0
 PySocks>=1.6.8
-python-whois>=0.7.0
+pythonwhois>=2.4.3
 regex>=2018.8.29 
 requests>=2.19.1

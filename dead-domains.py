@@ -22,7 +22,7 @@ import requests
 import regex
 
 # Whois
-import whois
+import pythonwhois
 from datetime import datetime
 
 # Dns
@@ -43,6 +43,9 @@ else:
 
 # Headers used for request
 headers = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/63.0.3239.132 Safari/537.36'}
+
+# Whois cache
+whois_cache = dict()
 
 
 # REGEXES ################################################################################
@@ -103,28 +106,53 @@ def is_dns_resolvable(domain):
 
 def is_whois_active(domain):
     '''Check if domain is expired'''
-    try:
-        w = whois.whois(domain)
-    except:
-        return True # Default to ACTIVE when error
+    testdomain = domain
+    rc = None
+    while testdomain and testdomain.count('.') > 0:
+        print('-- WHOIS-Domain: {0}'.format(testdomain))
 
-    expdate = w.expiration_date
+        if testdomain in whois_cache:
+            return whois_cache[testdomain]
 
-    if expdate:
-        if isinstance(expdate, list):
-            expdate = int(expdate[0].timestamp())
+        try:
+            w = pythonwhois.get_whois(testdomain, True)
+        except:
+            w = False
+
+        if w:
+            if 'raw' in w and str(w['raw']).upper().find('BLACKLIST') > 0:
+                print('---- WHOIS-Blacklisted: We are blacklisted for lookups for {0}'.format(testdomain))
+                rc = None
+                break
+
+            elif 'expiration_date' in w:
+                expdate = int(w['expiration_date'][0].timestamp())
+                now = int(time.time())
+                if expdate >= now:
+                    rc = True
+                    break
+
+            elif ('status' in w) and (str(w['status']).upper() in ('ACTIVE', 'INACTIVE')):
+                status = w['status']
+                if status.upper() == 'ACTIVE':
+                    rc = True
+                    break
+                else:
+                    rc = False
+                    break
+
+            else:
+                rc = False
+                break
+
+
+        if testdomain.find('.') == -1:
+            break
         else:
-            expdate = int(expdate.timestamp())
+            testdomain = testdomain[testdomain.find('.') + 1:]
 
-        now = int(time.time())
-
-        if expdate < now:
-            return False
-
-    else:
-        return False
-       
-    return True
+    whois_cache[testdomain] = rc
+    return rc
 
 
 if __name__ == '__main__':
@@ -146,7 +174,7 @@ if __name__ == '__main__':
         if entry and isdomain.search(entry):
             score = 0
             print('\n\nProcessing domain \"{0}\"'.format(entry))
-            if is_whois_active(entry):
+            if is_whois_active(entry) is not False:
                 print('-- WHOIS: Active')
                 score += 25
                 if is_dns_resolvable(entry):
